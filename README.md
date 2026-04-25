@@ -118,7 +118,7 @@ Object.defineProperty(globalThis, 'i', {
 ## Author
 
 **Horst Ritter**
-[https://ritter.github.io](https://ritter.github.io)
+[https://ritter-it.github.io](https://ritter-it.github.io)
 
 ---
 
