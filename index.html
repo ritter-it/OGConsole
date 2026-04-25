@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OGConsole · OmniGraffle Debugging Toolkit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:        #0e0f11;
+            --surface:   #161719;
+            --border:    #2a2c30;
+            --accent:    #7ee8a2;
+            --accent2:   #5bc8f5;
+            --muted:     #555a63;
+            --text:      #e2e4e8;
+            --text-dim:  #9097a3;
+            --mono:      'Space Mono', monospace;
+            --sans:      'DM Sans', sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            font-size: 15px;
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* ── HEADER ── */
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 48px 0 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 60% 80% at 50% -20%, rgba(126,232,162,0.07) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .badge {
+            display: inline-block;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--accent);
+            border: 1px solid rgba(126,232,162,0.3);
+            border-radius: 4px;
+            padding: 3px 10px;
+            margin-bottom: 20px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            font-family: var(--mono);
+            font-size: clamp(2.4rem, 6vw, 4rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1;
+            margin-bottom: 16px;
+        }
+
+        h1 span { color: var(--accent); }
+
+        .tagline {
+            color: var(--text-dim);
+            font-size: 16px;
+            font-weight: 300;
+            max-width: 520px;
+            margin: 0 auto 32px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            font-family: var(--mono);
+            font-size: 12px;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            letter-spacing: 0.04em;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #0a0b0c;
+            font-weight: 700;
+        }
+
+        .btn-primary:hover { background: #9ef5b8; transform: translateY(-1px); }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ── LAYOUT ── */
+        main {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 60px 24px;
+        }
+
+        section { margin-bottom: 64px; }
+
+        h2 {
+            font-family: var(--mono);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--accent);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h2::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        h3 {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        p { color: var(--text-dim); margin-bottom: 12px; }
+
+        /* ── FILES ── */
+        .file-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .file-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px 24px;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0 16px;
+            align-items: start;
+            transition: border-color 0.15s;
+        }
+
+        .file-card:hover { border-color: var(--accent); }
+
+        .file-icon {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--accent2);
+            background: rgba(91,200,245,0.08);
+            border: 1px solid rgba(91,200,245,0.2);
+            border-radius: 4px;
+            padding: 4px 8px;
+            white-space: nowrap;
+            margin-top: 2px;
+        }
+
+        .file-name {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .file-desc { color: var(--text-dim); font-size: 14px; margin: 0; }
+
+        /* ── COMMANDS TABLE ── */
+        .cmd-grid {
+            display: grid;
+            gap: 2px;
+        }
+
+        .cmd-row {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 16px;
+            padding: 10px 16px;
+            border-radius: 6px;
+            transition: background 0.1s;
+        }
+
+        .cmd-row:hover { background: var(--surface); }
+
+        .cmd {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--accent2);
+        }
+
+        .cmd-desc { color: var(--text-dim); font-size: 14px; }
+
+        /* ── CODE BLOCK ── */
+        .code-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            font-family: var(--mono);
+            font-size: 12px;
+            line-height: 1.8;
+            color: var(--text-dim);
+            overflow-x: auto;
+        }
+
+        .code-block .kw  { color: #c792ea; }
+        .code-block .fn  { color: var(--accent2); }
+        .code-block .str { color: var(--accent); }
+        .code-block .cm  { color: var(--muted); }
+
+        /* ── CONCEPTS ── */
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 12px;
+        }
+
+        .concept-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 20px;
+        }
+
+        .concept-key {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--accent2);
+            margin-bottom: 6px;
+        }
+
+        .concept-val { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+        /* ── STEPS ── */
+        .steps { counter-reset: step; display: grid; gap: 12px; }
+
+        .step {
+            counter-increment: step;
+            display: grid;
+            grid-template-columns: 32px 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+
+        .step::before {
+            content: counter(step);
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--bg);
+            background: var(--accent);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .step p { margin: 0; color: var(--text-dim); }
+        .step code {
+            font-family: var(--mono);
+            font-size: 12px;
+            background: rgba(255,255,255,0.05);
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: var(--accent2);
+        }
+
+        /* ── NOTE ── */
+        .note {
+            background: rgba(126,232,162,0.05);
+            border: 1px solid rgba(126,232,162,0.15);
+            border-radius: 8px;
+            padding: 16px 20px;
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-top: 16px;
+        }
+
+        .note strong { color: var(--accent); font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+        /* ── FOOTER ── */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 32px 24px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        footer a { color: var(--text-dim); text-decoration: none; }
+        footer a:hover { color: var(--accent); }
+
+        /* ── ANIMATIONS ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        header > * { animation: fadeUp 0.5s ease both; }
+        .badge       { animation-delay: 0.0s; }
+        h1           { animation-delay: 0.1s; }
+        .tagline     { animation-delay: 0.2s; }
+        .header-actions { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="badge">OmniGraffle Automation</div>
+    <h1>OG<span>Console</span></h1>
+    <p class="tagline">An interactive debugging toolkit and canvas inspector for OmniGraffle Automation scripting.</p>
+    <div class="header-actions">
+        <a class="btn btn-primary" href="https://github.com/ritter-it/OGConsole">
+            ↓ View on GitHub
+        </a>
+        <a class="btn btn-secondary" href="https://github.com/ritter-it/OGConsole/archive/refs/heads/main.zip">
+            ↓ Download ZIP
+        </a>
+    </div>
+</header>
+
+<main>
+
+    <!-- OVERVIEW -->
+    <section>
+        <h2>Overview</h2>
+        <p>OGConsole is a plug-in for OmniGraffle that displays a structured inventory of the current canvas - shapes, layers, IDs, properties — and registers shorthand commands callable directly from the console without parentheses.</p>
+        <p>It is designed to make interactive debugging and scripting exploration as fast and convenient as possible.</p>
+    </section>
+
+    <!-- FILES -->
+    <section>
+        <h2>Repository Contents</h2>
+        <div class="file-grid">
+            <div class="file-card">
+                <span class="file-icon">.omnijs</span>
+                <div>
+                    <div class="file-name">OG.Console.omnijs</div>
+                    <p class="file-desc">Main plug-in · Canvas inspector + console helper functions</p>
+                </div>
+            </div>
+            <div class="file-card">
+                <span class="file-icon">.omnijs</span>
+                <div>
+                    <div class="file-name">Fetch.IP.to.Canvas.omnijs</div>
+                    <p class="file-desc">Proof of Concept · Fetches public IP from api.myip.com and places it as a text shape on the current canvas</p>
+                </div>
+            </div>
+            <div class="file-card">
+                <span class="file-icon">.graffle</span>
+                <div>
+                    <div class="file-name">OGConsole_Sandbox.graffle</div>
+                    <p class="file-desc">Sandbox template · Reference document for exploring OGConsole</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- INSTALLATION -->
+    <section>
+        <h2>Installation</h2>
+        <div class="steps">
+            <div class="step"><p>Download the <code>.omnijs</code> file(s) from the repository</p></div>
+            <div class="step"><p>Double-click to install into OmniGraffle</p></div>
+            <div class="step"><p>The plug-in appears under <code>Automation → OGConsole</code></p></div>
+            <div class="step"><p>Open the console via <code>Automation → Automation Console</code> and run the plug-in</p></div>
+        </div>
+        <div class="note">
+            <strong>Requirements</strong><br>
+            OmniGraffle 7.4 or later (macOS) · Omni Automation enabled
+        </div>
+    </section>
+
+    <!-- COMMANDS -->
+    <section>
+        <h2>Console Commands</h2>
+        <div class="cmd-grid">
+            <div class="cmd-row"><span class="cmd">h</span><span class="cmd-desc">Show help overview</span></div>
+            <div class="cmd-row"><span class="cmd">i</span><span class="cmd-desc">Canvas inventory (short overview)</span></div>
+            <div class="cmd-row"><span class="cmd">ig</span><span class="cmd-desc">Graphic inventory (full shape details)</span></div>
+            <div class="cmd-row"><span class="cmd">id</span><span class="cmd-desc">Document inventory</span></div>
+            <div class="cmd-row"><span class="cmd">shapes</span><span class="cmd-desc">List all shapes on current canvas</span></div>
+            <div class="cmd-row"><span class="cmd">shape(n)</span><span class="cmd-desc">Show all properties of shape at index n</span></div>
+            <div class="cmd-row"><span class="cmd">shapeProps(n)</span><span class="cmd-desc">Show all properties incl. prototype chain</span></div>
+            <div class="cmd-row"><span class="cmd">sel</span><span class="cmd-desc">Show currently selected shapes</span></div>
+            <div class="cmd-row"><span class="cmd">findByName(str)</span><span class="cmd-desc">Find shapes whose name contains str</span></div>
+            <div class="cmd-row"><span class="cmd">findByText(str)</span><span class="cmd-desc">Find shapes whose text contains str</span></div>
+            <div class="cmd-row"><span class="cmd">json(n)</span><span class="cmd-desc">Copy shape n as JSON to clipboard</span></div>
+            <div class="cmd-row"><span class="cmd">cnvs</span><span class="cmd-desc">Reference to the current canvas</span></div>
+            <div class="cmd-row"><span class="cmd">c</span><span class="cmd-desc">Clear the console</span></div>
+        </div>
+        <div class="note">
+            <strong>Note</strong><br>
+            Commands without parentheses are implemented as JavaScript property getters - no parentheses needed.
+        </div>
+    </section>
+
+    <!-- GETTER PATTERN -->
+    <section>
+        <h2>Console Getter Pattern</h2>
+        <p>OGConsole registers functions as property getters on <code style="font-family:var(--mono);font-size:12px;color:var(--accent2)">globalThis</code> - this enables calling them without parentheses directly in the console.</p>
+        <div class="code-block"><span class="cm">// register a getter on globalThis</span>
+<span class="fn">Object</span>.<span class="fn">defineProperty</span>(<span class="kw">globalThis</span>, <span class="str">'i'</span>, {
+    configurable: <span class="kw">true</span>,
+    <span class="fn">get</span>: () => <span class="fn">dumpCanvas</span>(<span class="fn">cnvs</span>())
+})
+
+<span class="cm">// call without parentheses in the console</span>
+i</div>
+        <div class="note">
+            <strong>Important</strong><br>
+            <code style="font-family:var(--mono);font-size:12px;color:var(--accent2)">configurable: true</code> is required to allow re-registration when the plug-in is executed multiple times in the same session.
+        </div>
+    </section>
+
+    <!-- CONCEPTS -->
+    <section>
+        <h2>Concepts Demonstrated</h2>
+        <div class="concept-grid">
+            <div class="concept-card">
+                <div class="concept-key">URL.FetchRequest</div>
+                <p class="concept-val">Omni Automation HTTP client</p>
+            </div>
+            <div class="concept-card">
+                <div class="concept-key">JSON.parse</div>
+                <p class="concept-val">Parsing API responses</p>
+            </div>
+            <div class="concept-card">
+                <div class="concept-key">cnvs.newShape()</div>
+                <p class="concept-val">Programmatic shape creation</p>
+            </div>
+            <div class="concept-card">
+                <div class="concept-key">shape.setUserData()</div>
+                <p class="concept-val">Writing key/value metadata to shapes</p>
+            </div>
+            <div class="concept-card">
+                <div class="concept-key">Pasteboard.general.string</div>
+                <p class="concept-val">Clipboard read/write access</p>
+            </div>
+            <div class="concept-card">
+                <div class="concept-key">Object.defineProperty</div>
+                <p class="concept-val">Console getter pattern</p>
+            </div>
+            <div class="concept-card">
+                <div class="concept-key">globalThis</div>
+                <p class="concept-val">Registering functions for interactive console use</p>
+            </div>
+            <div class="concept-card">
+                <div class="concept-key">async / await</div>
+                <p class="concept-val">Asynchronous fetch within PlugIn.Action</p>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    <p>Built by <a href="https://ritter-it.github.io">Horst Ritter</a> · <a href="https://github.com/ritter-it/OGConsole">GitHub</a> · MIT License</p>
+</footer>
+
+</body>
+</html>

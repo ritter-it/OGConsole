@@ -1,0 +1,281 @@
+/*{
+    "type": "action",
+    "targets": ["omnigraffle"],
+    "author": "Horst Ritter",
+    "identifier": "io.github.ritter.OGConsole",
+    "version": "1.6",
+    "description": "Displays a structured inventory of the current canvas in the console — shapes, layers, and document metadata. Also registers reusable helper functions (shapes, shape, shapeProps, sel, findByName, findByText, json, i, ig, id, h, c) for interactive debugging directly from the console.",
+    "label": "Inventory 0.6 :: NextGen",
+    "shortLabel": "6 Get Inventory :: NextGen",
+    "paletteLabel": "6 Get Inventory :: NextGen",
+    "image": "gearshape.fill"
+}*/
+
+(() => {
+    const action = new PlugIn.Action(async function(selection, sender) {
+
+        // ═════════════════════════════════════════════
+        // HILFSFUNKTIONEN (intern)
+        // ═════════════════════════════════════════════
+
+        const divider = (char = '─', len = 60) => char.repeat(len)
+        const header  = (title) => {
+            console.log('\n' + divider('═'))
+            console.log(`  ${title}`)
+            console.log(divider('═'))
+        }
+        const section = (title) => {
+            console.log('\n' + divider())
+            console.log(`  ▶ ${title}`)
+            console.log(divider())
+        }
+        const safe = (fn) => { try { return fn() } catch(e) { return `[!] ${e.message}` } }
+        const cnvs = () => document.windows[0].selection.canvas
+
+
+        // ═════════════════════════════════════════════
+        // DUMP-FUNKTIONEN
+        // ═════════════════════════════════════════════
+
+        const dumpGraphics = (canvas) => {
+            header(`📦 GRAFIK-INVENTAR  ·  Canvas: „${canvas.name}"`)
+            console.log(`  Shapes gesamt: ${canvas.graphics.length}\n`)
+            canvas.graphics.forEach((graphic, index) => {
+                section(`Shape [${index}]  ${graphic.name ? '· Name: ' + graphic.name : '(kein Name)'}`)
+                const props = [
+                    ['Typ',         () => graphic.constructor.name],
+                    ['name',        () => graphic.name],
+                    ['text',        () => graphic.text],
+                    ['geometry',    () => graphic.geometry],
+                    ['fillColor',   () => graphic.fillColor],
+                    ['strokeColor', () => graphic.strokeColor],
+                    ['textColor',   () => graphic.textColor],
+                    ['fontName',    () => graphic.fontName],
+                    ['textSize',    () => graphic.textSize],
+                    ['opacity',     () => graphic.opacity],
+                    ['locked',      () => graphic.locked],
+                    ['visible',     () => graphic.visible],
+                    ['shadow',      () => graphic.shadow],
+                    ['layer',       () => graphic.layer ? graphic.layer.name : 'undefined'],
+                    ['userInfo',    () => JSON.stringify(graphic.userInfo)],
+                ]
+                props.forEach(([key, fn]) => {
+                    console.log(`  ${key.padEnd(14)} ${safe(fn)}`)
+                })
+            })
+            console.log('\n' + divider('═'))
+            console.log(`  ✅ ${canvas.graphics.length} Shape(s) ausgegeben`)
+            console.log(divider('═'))
+        }
+
+        const dumpCanvas = (canvas) => {
+            header(`🖼  CANVAS-INVENTAR  ·  „${canvas.name}"`)
+            const props = [
+                ['name',            () => canvas.name],
+                ['size',            () => canvas.size],
+                ['backgroundColor', () => canvas.backgroundColor],
+                ['graphics.length', () => canvas.graphics.length],
+                ['layers.length',   () => canvas.layers ? canvas.layers.length : 'n/a'],
+            ]
+            props.forEach(([key, fn]) => {
+                console.log(`  ${key.padEnd(20)} ${safe(fn)}`)
+            })
+            if (canvas.layers) {
+                section('Layers')
+                canvas.layers.forEach((layer, index) => {
+                    console.log(`  Layer [${index}]  name: ${layer.name}  |  visible: ${layer.visible}  |  locked: ${layer.locked}`)
+                })
+            }
+            section('Shapes-Kurzübersicht')
+            canvas.graphics.forEach((graphic, index) => {
+                const typ  = safe(() => graphic.constructor.name).padEnd(10)
+                const name = (graphic.name || '(kein Name)').padEnd(20)
+                const text = (safe(() => graphic.text) || '').substring(0, 30)
+                const id   = safe(() => graphic.id)
+                console.log(`  [${index}]  id[${id}]  ${typ}  ${name}  text: ${text}`)
+            })
+            console.log('\n' + divider('═'))
+            console.log(`  ✅ Canvas-Inventar abgeschlossen`)
+            console.log(divider('═'))
+        }
+
+        const dumpDocument = () => {
+            header(`📄 DOKUMENT-INVENTAR  ·  „${document.name}"`)
+            const props = [
+                ['name',            () => document.name],
+                ['url',             () => document.url],
+                ['windows.length',  () => document.windows.length],
+                ['modified',        () => document.modified],
+            ]
+            props.forEach(([key, fn]) => {
+                console.log(`  ${key.padEnd(20)} ${safe(fn)}`)
+            })
+            if (document.canvases) {
+                section('Canvases')
+                document.canvases.forEach((c, i) => {
+                    console.log(`  Canvas [${i}]  „${c.name}"  ·  ${safe(() => c.graphics.length)} Shapes`)
+                })
+            }
+            const c = cnvs()
+            section(`Aktuelles Canvas: „${c.name}"  ·  ${c.graphics.length} Shape(s)`)
+            c.graphics.forEach((g, i) => {
+                const typ  = safe(() => g.constructor.name).padEnd(10)
+                const name = (g.name || '(kein Name)').padEnd(20)
+                console.log(`  [${i}]  ${typ}  ${name}`)
+            })
+            console.log('\n' + divider('═'))
+            console.log(`  ✅ Dokument-Inventar abgeschlossen`)
+            console.log(divider('═'))
+        }
+
+        const dumpSel = () => {
+            const graphics = document.windows[0].selection.graphics
+            if (!graphics.length) { console.log('  ⚠️  Nichts selektiert'); return }
+            console.log(`\n  ${graphics.length} Shape(s) selektiert:\n`)
+            graphics.forEach((graphic, index) => {
+                console.log(`  Index[${index}] ${safe(() => graphic.constructor.name).padEnd(10)}  ${graphic.name || '–'}  |  ${safe(() => graphic.text) || '–'}`)
+            })
+        }
+
+
+        // ═════════════════════════════════════════════
+        // GLOBALE KONSOLEN-FUNKTIONEN registrieren
+        // ═════════════════════════════════════════════
+
+        globalThis.hlp = () => {
+            console.log('\n' + '═'.repeat(60))
+            console.log('  📖 VERFÜGBARE KONSOLEN-FUNKTIONEN')
+            console.log('═'.repeat(60))
+            console.log('  h                   – diese Übersicht')
+            console.log('  shapes              – alle Shapes (Kurzform)')
+            console.log('  shape(i)            – Details zu Shape[i]')
+            console.log('  shapeProps(i)       – alle Properties von Shape[i]')
+            console.log('  sel                 – aktuell selektierte Shapes')
+            console.log('  i                   – Canvas-Kurzübersicht')
+            console.log('  ig                  – Grafik-Inventar (alle Details)')
+            console.log('  id                  – Dokument-Inventar')
+            console.log('  findByName(str)     – Shapes deren Name str enthält')
+            console.log('  findByText(str)     – Shapes deren Text str enthält')
+            console.log('  json(i)             – Shape[i] als JSON in Clipboard')
+            console.log('  c                   – console.clear()')
+            console.log('═'.repeat(60))
+        }
+
+        const dumpShapes = (c) => {
+            console.log(`\n  Canvas: „${c.name}"  ·  ${c.graphics.length} Shape(s)\n`)
+            c.graphics.forEach((g, i) => {
+                const typ  = safe(() => g.constructor.name).padEnd(10)
+                const name = (g.name  || '–').padEnd(22)
+                const text = (safe(() => g.text) || '–').substring(0, 28)
+                console.log(`  [${i}]  ${typ}  ${name}  ${text}`)
+            })
+        return "dumpShapes executed"
+        }
+
+        globalThis.shape = (index) => {
+            const g = cnvs().graphics[index]
+            if (!g) { console.log(`⚠️  Kein Shape bei Index ${index}`); return }
+            console.log(`\n  Shape · index[${index}] · id[${safe(() => g.id)}]\n`)
+            ;['name','text','geometry','fillColor','strokeColor',
+              'textColor','fontName','textSize','opacity',
+              'locked','visible','shadow','layer'].forEach(p => {
+                const val = p === 'layer' ? safe(() => g.layer ? g.layer.name : 'null') : safe(() => g[p])
+                console.log(`  ${p.padEnd(16)} ${val}`)
+            })
+        
+            // userData – Key/Value-Pairs einzeln ausgeben
+            const ud = safe(() => g.userData)
+            if (ud && Object.keys(ud).length > 0) {
+              console.log(`  ${'userData'.padEnd(16)}`)
+              Object.entries(ud).forEach(([key, val]) => {
+                console.log(`    ↳ ${key.padEnd(14)} ${val}`)
+              })
+            } else {
+                console.log(`  ${'userData'.padEnd(16)} (leer)`)
+            }
+        }
+
+        globalThis.shapeProps = (index) => {
+            const g = cnvs().graphics[index]
+            if (!g) { console.log(`⚠️  Kein Shape bei Index ${index}`); return }
+            console.log(`\n  Alle Properties von Shape [${index}]\n`)
+            const allKeys = new Set()
+            let cur = g
+            while (cur) { Object.getOwnPropertyNames(cur).forEach(k => allKeys.add(k)); cur = Object.getPrototypeOf(cur) }
+            for (const key of allKeys) {
+                if (typeof g[key] === 'function') continue
+                console.log(`  ${key.padEnd(24)} ${safe(() => g[key])}`)
+            }
+        }
+
+        globalThis.findByName = (str) => {
+            const results = cnvs().graphics.filter(g => g.name && g.name.includes(str))
+            console.log(`\n  findByName("${str}") → ${results.length} Treffer\n`)
+            results.forEach((g, i) => console.log(`  [${i}] ${g.constructor.name.padEnd(10)}  name: ${g.name}  |  text: ${safe(() => g.text)}`))
+        }
+
+        globalThis.findByText = (str) => {
+            const results = cnvs().graphics.filter(g => safe(() => g.text) && safe(() => g.text).includes(str))
+            console.log(`\n  findByText("${str}") → ${results.length} Treffer\n`)
+            results.forEach((g, i) => console.log(`  [${i}] ${g.constructor.name.padEnd(10)}  name: ${g.name || '–'}  |  text: ${safe(() => g.text)}`))
+        }
+
+        globalThis.json = (index) => {
+            const g = cnvs().graphics[index]
+            if (!g) { console.log(`⚠️  Kein Shape bei Index ${index}`); return }
+            const obj = {}
+            ;['name','text','geometry','fillColor','strokeColor','textColor',
+              'fontName','textSize','opacity','locked','visible'].forEach(p => {
+                obj[p] = safe(() => String(g[p]))
+            })
+            Pasteboard.general.string = JSON.stringify(obj, null, 2)
+            console.log(`  ✅ Shape [${index}] als JSON in Clipboard kopiert`)
+        }
+
+      /*
+      !!! Fallstrick mit "Object.defineProperty" !!!
+      Ohne 
+      
+      configurable: true 
+      
+      kann eine Property nur einmal definiert werden. Beim zweiten Ausführen schlägt die Definition 
+      still fehl, und da die Getters nicht neu registriert werden, passiert scheinbar gar nichts.
+      Fix: 
+      
+      configurable: true 
+      
+      bei allen defineProperty-Aufrufen ergänzen. "configurable: true" erlaubt es, die Property beim
+      nächsten Ausführen des Scripts neu zu definieren - also zu überschreiben. Ohne diesen Flag ist 
+      die Definition permanent und unveränderlich für die Laufzeit der Session.
+      */
+      
+      Object.defineProperty(globalThis, 'c',      { configurable: true, get: () => console.clear() })
+      Object.defineProperty(globalThis, 'h',      { configurable: true, get: () => globalThis.hlp() })
+      Object.defineProperty(globalThis, 'i',      { configurable: true, get: () => dumpCanvas(cnvs()) })
+      Object.defineProperty(globalThis, 'ig',     { configurable: true, get: () => dumpGraphics(cnvs()) })
+      Object.defineProperty(globalThis, 'id',     { configurable: true, get: () => dumpDocument() })
+      Object.defineProperty(globalThis, 'sel',    { configurable: true, get: () => dumpSel() })
+      Object.defineProperty(globalThis, 'shapes', { configurable: true, get: () => dumpShapes(cnvs()) })
+      Object.defineProperty(globalThis, 'cnvs',   { configurable: true, get: () => document.windows[0].selection.canvas })
+      Object.defineProperty(globalThis, 'g',      { configurable: true, get: () => document.windows[0].selection.graphics})
+      
+      Object.defineProperty(globalThis, 'x', { configurable: true, get: () => document.windows[0].selection.canvas.graphics[0] })
+      Object.defineProperty(globalThis, 'x1', { configurable: true, get: () => document.windows[0].selection.canvas.graphics[1] })
+      Object.defineProperty(globalThis, 'x2', { configurable: true, get: () => document.windows[0].selection.canvas.graphics[2] })
+      Object.defineProperty(globalThis, 'x3', { configurable: true, get: () => document.windows[0].selection.canvas.graphics[3] })
+
+        // ═════════════════════════════════════════════
+        // START
+        // ═════════════════════════════════════════════
+
+        console.clear()
+        globalThis.i
+
+        console.log('\n' + '─'.repeat(60))
+        console.log('  💡 Konsolen-Funktionen aktiv  →  h für Übersicht')
+        console.log('─'.repeat(60))
+    });
+
+    action.validate = function(selection, sender) { return true };
+    return action;
+})();

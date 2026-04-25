@@ -1,0 +1,160 @@
+/*{
+    "type": "action",
+    "targets": ["omnigraffle"],
+    "author": "Horst Ritter",
+    "identifier": "io.github.ritter.FetchIP",
+    "version": "1.0",
+    "description": "Fetches the public IP address from api.myip.com and places it as a text shape on the current canvas.",
+    "label": "[PoC] Fetch IP → Canvas",
+    "shortLabel": "Fetch IP",
+    "paletteLabel": "[PoC] Fetch IP → Canvas",
+    "image": "arrow.down.square.fill"
+}*/
+(() => {
+    const action = new PlugIn.Action(async function(selection, sender) {
+
+        console.clear()
+
+        // REQUEST
+        const targetURL = 'https://api.myip.com'
+        request = URL.FetchRequest.fromString(targetURL)
+        request.method = 'GET'
+        request.cache = 'no-cache'
+        console.log(`DEBUG: request.url = ${request.url}`)
+
+        // FETCH
+        response = await request.fetch()
+        console.log(`DEBUG: response.statusCode = ${response.statusCode}`)
+        console.log(`DEBUG: response.bodyString = ${response.bodyString.ip}`)
+
+        console.log(`DEBUG: response.headers.Server = ${response.headers.Server}`)
+        
+        // falsch, gibt nichts aus
+        console.log(`DEBUG: response.headers = ${response.headers}`)
+        //console.log(`DEBUG: response.headers = ${JSON.stringify(response.headers)}`)
+
+        // PARSE
+        const obj = JSON.parse(response.bodyString)
+        const ipAddress = obj.ip
+        console.log(`DEBUG: ipAddress = ${ipAddress}`)
+
+        // CLIPBOARD
+        Pasteboard.general.string = ipAddress
+        console.log('DEBUG: In Zwischenablage kopiert.')
+
+        // TEXTRAHMEN AUF CANVAS
+        const cnvs = document.windows[0].selection.canvas
+        const shape = cnvs.newShape()
+        shape.layer = cnvs.layers.find(l => l.name === 'Layer 3')
+        
+        
+        shape.geometry                  = new Rect(41, 300, 320, 26)
+        shape.text                      = ipAddress
+        shape.fontName                  = 'Menlo'
+        shape.textSize                  = 30
+        shape.textHorizontalAlignment   = HorizontalTextAlignment.Left
+        //shape.textColor                 = Color.RGB(0.216, 0.404, 0.771, 1.0)
+        shape.textColor                 = Color.RGB(0.502, 0.502, 0.015, 1.0)
+        shape.fillColor                 = Color.clear
+        shape.strokeColor               = Color.clear
+        shape.shadowBeneath             = false
+        shape.shadowColor               = Color.clear
+        shape.shadowFuzziness           = 0
+        shape.shadowVector              = new Point(0, 0)
+        
+        
+        // Name des Shapes
+        shape.name = 'IP address'
+
+        // Notiz des Shapes
+        shape.notes = 'Created by: OGConsole [PoC]\nHorst Ritter'
+
+        // create timeStamp
+        // const timestamp = new Date().toLocaleString('de-DE', {
+        const timestamp = new Date().toLocaleString({
+            year:   'numeric',
+            month:  '2-digit',
+            day:    '2-digit',
+            hour:   '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        })
+
+
+        // UserData heißt der Block unter »Objektdaten«
+        // UserData - Key/Value Paare
+        shape.setUserData('Method', 'URL.FetchRequest → JSON.parse → cnvs.newShape()')
+        shape.setUserData('Source', 'https://ritter.github.io')
+        shape.setUserData('API endpoint', 'https://api.myip.com')
+        shape.setUserData('Fetched', timestamp)
+        //cnvs.sendToBack(shape)
+        cnvs.graphics[3].orderBelow(cnvs.graphics[4])
+
+        const dumpRect  = r => `x=${r.x} y=${r.y} w=${r.width} h=${r.height}`
+        const dumpColor = c => `r=${c.red} g=${c.green} b=${c.blue} a=${c.alpha}`
+        const dumpPoint = p => `x=${p.x} y=${p.y}`
+        
+        console.log(`[DEBUG] ObjectType:        ${shape.constructor.name}`)
+        try { console.log(`[DEBUG] geometryTextFrame: ${dumpRect(shape.geometry)}`)        } catch(e) { console.log(`geometry: ${e}`) }
+        try { console.log(`[DEBUG] valueTextFrame:    ${shape.text}`)                      } catch(e) { console.log(`text: ${e}`) }
+        try { console.info(`[DEBUG] fontName:          ${shape.fontName}`)                  } catch(e) { console.log(`fontName: ${e}`) }
+        try { console.info(`[DEBUG] textSize:          ${shape.textSize}`)                  } catch(e) { console.log(`textSize: ${e}`) }
+        try { console.info(`[DEBUG] textColor:         ${dumpColor(shape.textColor)}`)      } catch(e) { console.log(`textColor: ${e}`) }
+        try { console.warn(`[DEBUG] fillColor:         ${dumpColor(shape.fillColor)}`)      } catch(e) { console.log(`fillColor: ${e}`) }
+        try { console.warn(`[DEBUG] strokeColor:       ${dumpColor(shape.strokeColor)}`)    } catch(e) { console.log(`strokeColor: ${e}`) }
+        try { console.warn(`[DEBUG] shadowBeneath:     ${shape.shadowBeneath}`)             } catch(e) { console.log(`shadowBeneath: ${e}`) }
+        try { console.error(`[DEBUG] shadowColor:       ${dumpColor(shape.shadowColor)}`)    } catch(e) { console.log(`shadowColor: ${e}`) }
+        try { console.error(`[DEBUG] shadowFuzziness:   ${shape.shadowFuzziness}`)           } catch(e) { console.log(`shadowFuzziness: ${e}`) }
+        try { console.error(`[DEBUG] shadowVector:      ${dumpPoint(shape.shadowVector)}`)   } catch(e) { console.log(`shadowVector: ${e}`) }
+        
+        // shape.name ist ein primitiver String - kein Objekt, daher kein dumpPoint. Einfach direkt:
+        try { console.log(`[DEBUG] shapeName:         ${shape.name}`)                      } catch(e) { console.log(`shapeName: ${e}`) }
+        try { console.log(`[DEBUG] shapeNotes:        ${shape.notes}`)                     } catch(e) { console.log(`shapeNotes: ${e}`) }
+        try { console.log(`[DEBUG] UserName:          ${shape.userData['UserName']}`) } catch(e) { console.log(`UserName: ${e}`) }
+        try { console.log(`[DEBUG] UserData:          ${shape.userData['UserData']}`) } catch(e) { console.log(`UserData: ${e}`) }
+
+
+// Prototype-Properties einschlieÃen
+// const allKeys = []
+// let objekt = shape
+// while (objekt) {
+    // Object.getOwnPropertyNames(objekt).forEach(k => allKeys.push(k))
+    // objekt = Object.getPrototypeOf(objekt)
+// }
+// console.log([...new Set(allKeys)].join('\n'))
+
+const dumpProps = (obj, label = 'Object') => {
+    const allKeys = new Set()
+    let cur = obj
+    while (cur) {
+        Object.getOwnPropertyNames(cur).forEach(k => allKeys.add(k))
+        cur = Object.getPrototypeOf(cur)
+    }
+    console.log(`\n=== ${label} ===`)
+    for (const key of allKeys) {
+        try {
+            console.log(`  ${key}: ${obj[key]}`)
+        } catch(e) {
+            console.log(`  ${key}: [Fehler: ${e.message}]`)
+        }
+    }
+}
+
+// Verwendung:
+// dumpProps(shape, 'Graphic')
+// dumpProps(cnvs, 'Canvas')
+// dumpProps(document, 'Document')
+ 
+
+    console.log(`[DEBUG] Textrahmen mit IP erstellt: "${ipAddress}"`)
+
+        // ALERT
+        // await new Alert('Fetch IP', `IP: ${ipAddress}\n\n→ In Zwischenablage kopiert.\n→ Textrahmen auf Canvas erstellt.`).show()
+    });
+
+    action.validate = function(selection, sender) {
+        return true
+    };
+
+    return action;
+})();
